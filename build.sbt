@@ -1,6 +1,4 @@
-organization := "com.example"
-
-name := "Router"
+name := "Sinactra"
 
 version := "0.1.0-SNAPSHOT"
 
