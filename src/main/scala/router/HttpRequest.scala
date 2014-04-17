@@ -21,14 +21,18 @@ case class HttpRequest(router: Router, method: String, path: String, out: Output
     }
 
     def respondWith(statusCode: Int, contentLength: Long) {
-      statusCode match {
-        case 200 => out.write("HTTP/1.1 200 OK\r\n".getBytes("utf-8"))
-        case 404 => out.write("HTTP/1.1 404 Not Found\r\n".getBytes("utf-8"))
+      val statusResponse: String = statusCode match {
+        case 200 => "HTTP/1.1 200 OK"
+        case 404 => "HTTP/1.1 404 Not Found"
       }
-      out.write("Server: Router\r\n".getBytes("utf-8"))
-      out.write("Content-Type: text/html; charset=UTF-8\r\n".getBytes("utf-8"))
-      out.write("Content-Length: %s\r\n".format(contentLength).getBytes("utf-8"))
-      out.write("\r\n".getBytes("utf-8"))
+      out.write(
+        statusResponse ::
+        "Server: Sinactra" ::
+        "Content-Type: text/html; charset=UTF-8" ::
+        "Content-Length: %s".format(contentLength) ::
+        "\n\r" :: Nil
+        mkString("\r\n") getBytes("UTF-8")
+      )
       out.flush()
     }
 
@@ -39,16 +43,16 @@ case class HttpRequest(router: Router, method: String, path: String, out: Output
 
     val (responseCode: Int, responseText: String) = response
 
-    val fin = new BufferedInputStream(new ByteArrayInputStream(responseText.getBytes("UTF-8")))
+    val bis = new BufferedInputStream(new ByteArrayInputStream(responseText.getBytes("UTF-8")))
     val length = responseText.length
 
     try {
       respondWith(responseCode, length)
-      write(fin, out)
+      write(bis, out)
     } catch {
       case e: Exception => throw new RuntimeException("Error while serving content", e)
     } finally {
-      closeQuietly(fin)
+      closeQuietly(bis)
     }
 
   }
