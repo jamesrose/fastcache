@@ -5,8 +5,26 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.io._
 import scala.io.Source
 
-case class HttpRequest(router: Router, method: String, path: String, out: OutputStream) {
-  import HttpRequest._, Utils._
+object GetMethod {
+  def unapply(request: List[String]): Option[(String, String)] = {
+    request match {
+      case method :: path :: Nil => Some((method, path))
+      case _ => None
+    }
+  }
+}
+
+object SetMethod {
+  def unapply(request: List[String]): Option[(String, String, String)] = {
+    request match {
+      case method :: path :: value => Some((method, path, value.mkString(" ")))
+      case _ => None
+    }
+  }
+}
+
+case class Request(router: Router, out: OutputStream, method: String, path: String, value: Option[String]) {
+  import Request._, Utils._
 
   def execute() = {
 
@@ -22,22 +40,18 @@ case class HttpRequest(router: Router, method: String, path: String, out: Output
 
     def respondWith(statusCode: Int, contentLength: Long) {
       val statusResponse: String = statusCode match {
-        case 200 => "HTTP/1.1 200 OK"
-        case 404 => "HTTP/1.1 404 Not Found"
+        case 200 => "OK"
+        case 404 => "Not Found"
       }
       out.write(
-        statusResponse ::
-        "Server: Sinactra" ::
-        "Content-Type: text/html; charset=UTF-8" ::
-        "Content-Length: %s".format(contentLength) ::
-        "\n\r" :: Nil
+        statusResponse :: "\r\n" :: Nil
         mkString("\r\n") getBytes("UTF-8")
       )
       out.flush()
     }
 
-    val response = router.dispatch(method, path) match {
-      case request: NullResponse => (404, "Requested at: " + request.requestedAt)
+    val response = router.dispatch(method, path, value) match {
+      case request: NullResponse => (404, "")
       case Response(response) => (200, response)
     }
 
@@ -58,17 +72,18 @@ case class HttpRequest(router: Router, method: String, path: String, out: Output
   }
 }
 
-object HttpRequest {
-  private[HttpRequest] val log: Logger = LoggerFactory.getLogger(classOf[HttpRequest])
+object Request {
+  private[Request] val log: Logger = LoggerFactory.getLogger(classOf[Request])
 
-  def apply(in: InputStream, out: OutputStream, router: Router): HttpRequest = {
+  def apply(in: InputStream, out: OutputStream, router: Router): Request = {
     val lines = Source.fromInputStream(in).getLines
 
     if (lines.hasNext) {
       val req = lines.next()
 
       req.split(" ").toList match {
-        case method :: path :: "HTTP/1.1" :: Nil => new HttpRequest(router, method, path, out)
+        case GetMethod(method, path) => new Request(router, out, method, path, None)
+        case SetMethod(method, path, value) => new Request(router, out, method, path, Some(value))
         case _ => throw new UnsupportedOperationException("Method Not Implemented")
       }
     } else throw new RuntimeException("Request is empty: " + lines.mkString("\n"))

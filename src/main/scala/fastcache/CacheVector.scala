@@ -1,6 +1,6 @@
 package sinactra
 
-class RouteVector[A] {
+class CacheVector[A] {
 
   var vector = Vector[A]()
 

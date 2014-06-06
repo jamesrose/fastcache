@@ -8,13 +8,13 @@ import java.util.concurrent.Executors._
 
 import scala.io.Source
 
-object HttpServer {
-  private[HttpServer] val log: Logger = LoggerFactory.getLogger(classOf[HttpServer])
-  private[HttpServer] val internalExecutor = newCachedThreadPool()
+object CacheServer {
+  private[CacheServer] val log: Logger = LoggerFactory.getLogger(classOf[CacheServer])
+  private[CacheServer] val internalExecutor = newCachedThreadPool()
 }
 
-class HttpServer (private val port: Int, private val router: Router) extends Runnable {
-  import HttpServer._
+class CacheServer (private val port: Int, private val router: Router) extends Runnable {
+  import CacheServer._
 
   override def run() {
     val serverSocket = new ServerSocket(port, 100, InetAddress.getByName("127.0.0.1"))
@@ -25,7 +25,7 @@ class HttpServer (private val port: Int, private val router: Router) extends Run
       try {
         val clientSocket = serverSocket.accept()
         log.info("Connection request from " + clientSocket)
-        internalExecutor.submit(new HttpWorker(clientSocket, router))
+        internalExecutor.submit(new Worker(clientSocket, router))
       } catch {
         case e: Exception => log.error("Error while accepting a connection", e)
       }

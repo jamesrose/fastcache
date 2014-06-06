@@ -8,12 +8,12 @@ import java.util.concurrent.Executors._
 
 import scala.io.Source
 
-object HttpWorker {
-  private[HttpWorker] val log: Logger = LoggerFactory.getLogger(classOf[HttpWorker])
+object Worker {
+  private[Worker] val log: Logger = LoggerFactory.getLogger(classOf[Worker])
 }
 
-class HttpWorker(clientSocket: Socket, router: Router) extends Runnable {
-  import HttpWorker._, Utils._
+class Worker(clientSocket: Socket, router: Router) extends Runnable {
+  import Worker._, Utils._
 
   override def run() {
     val in = new BufferedInputStream(clientSocket.getInputStream())
@@ -22,7 +22,7 @@ class HttpWorker(clientSocket: Socket, router: Router) extends Runnable {
     try {
       val now = System.currentTimeMillis
       log.info("Processing " + clientSocket)
-      val req = HttpRequest(in, out, router)
+      val req = Request(in, out, router)
       req.execute()
       log.info("Processed " + clientSocket + ". Took: " + (System.currentTimeMillis - now) + " ms.")
     } finally {
